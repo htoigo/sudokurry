@@ -2,6 +2,9 @@ Copyright Harry H. Toigo (c) 2017
 
 All rights reserved.
 
+Portions of this code are copyright Richard Bird (c) 2015, as published in
+_Thinking Functionally with Haskell_, Cambridge University Press, 2015.
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
