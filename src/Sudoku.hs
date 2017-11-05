@@ -511,7 +511,7 @@ expand1Rnd rg rows = [rows1 ++ [row1 ++ [c]:row2] ++ rows2 | c <- cs']
         (row1,cs:row2)    = break smallest row
         smallest cs       = length cs == n
         n                 = minimum (counts rows)
-        (cs', rg')        = shuffle cs rg
+        (cs',rg')         = shuffle cs rg
 
 
 -- This mixing of the order of the solutions produced from an empty grid still
@@ -628,6 +628,9 @@ solutionIO = getStdRandom solution
 --   3    Medium
 --   4    Difficult
 --   5    Fiendish
+
+-- NOTE: ast-sudoku (by Glenn Fowler) uses a difficulty rating from 1 (very
+-- easy) to 99999 (very difficult).  The 90000-99999 range is exponential.
 
 type DiffLevel = Int
 
@@ -774,21 +777,48 @@ combinationsDiff g = 0
 
 -- Generate a new puzzle, by first generating a completed solution grid, then
 -- emptying cells while verifying that the puzzle has only the one solution
--- until the target difficulty is reached.
+-- until the number of givens or the target difficulty is reached.
 
--- Exploring the space of puzzles that have that grid as their solution.
+-- Exploring the combinatoric space of puzzles that have that grid as their solution.
 
--- puzzle takes a target difficulty level and returns a random puzzle of the
+-- 'puzzle'  takes a target difficulty level and returns a random puzzle of the
 -- given difficulty.
+-- puzzle :: (RandomGen g) => DiffLevel -> g -> (Grid, g)
+-- puzzle d rg = (head ps, rg')
+--     where (ps,rg') = puzzles d rg
 
-puzzle :: (RandomGen g) => DiffLevel -> g -> (Grid, g)
-puzzle d rg = (head ps, rg')
-    where (ps,rg') = puzzles d rg
+puzzle :: (RandomGen g) => g -> (Grid, g)
+puzzle rg = (foldl clearCellIfOK grid order, rg3)
+  where (grid,rg3)  = solution rg1
+        (order,_) = shuffle [0..gridSize^2-1] rg2
+        (rg1,rg2) = split rg
 
--- If one is using the IO monad's hidden StdGen variable, there is a wrapped
--- version:
-puzzleIO :: DiffLevel -> IO Grid
-puzzleIO d = getStdRandom (puzzle d)
+-- | Take a grid and an integer representing a position within the grid, where
+-- positions are numbered left-to-right, top-to-bottom from 0 to 80, and if
+-- the cell at that position is not blank and can be cleared without
+-- invalidating the puzzle (because it would not be uniquely solvable) then
+-- clear that cell, otherwise return the input grid as-is.
+clearCellIfOK :: Grid -> Int -> Grid
+clearCellIfOK g p
+    | blank c   = g
+    | otherwise = if has1Soln g' then g' else g
+    where c = gStr !! p
+          g' = groupN gridSize (clearCellN p gStr)
+          gStr = ungroup g
+
+-- | Clear the cell at a given position within a grid string.  The position is
+-- given as an integer index into the list of digits, starting from 0.
+clearCellN :: Int -> [Digit] -> [Digit]
+clearCellN n ds = ds1 ++ blankC : tail ds2
+    where (ds1,ds2) = splitAt n ds
+
+-- | Generate a puzzle within the IO monad.  A convenience function for those
+-- using the IO monad's hidden StdGen variable.
+
+-- Was:  puzzleIO :: DiffLevel -> IO Grid
+
+puzzleIO :: IO Grid
+puzzleIO = getStdRandom (puzzle)
 
 
 -- 'puzzles' is a list of puzzle grids in which the first grid is a valid

@@ -1,49 +1,112 @@
 module Sudoku.PrettyPrint
-  ( renderGrid
+  ( renderGrid, Encoding(..)
   ) where
 
-import Data.List (intercalate)
+import Data.List (intercalate, intersperse)
 
-import Sudoku (Grid(..), Matrix(..), Row(..), Digit,
+import Sudoku (gridOrder, gridSize, Grid(..), Matrix(..), Row(..), Digit,
                digits, blank, groupN)
 
 -- A first pass at rendering a grid.  Here we render directly to a string, but
 -- later we'll render to a Doc.
-
+--
 -- TODO: Import the HughesPJ pretty printer (package 'pretty') for the 'Doc'
 -- type.
 -- import Text.PrettyPrint (Doc)
-
+--
 -- See: Hughes J., "The Design of a Pretty-printing Library",
 --      Wadler P., "A prettier printer"
+
 
 -- Grid = [Row Digit] = [[Digit]]
 -- Row Digit = [Digit]
 
+data Encoding = Ascii | Utf8
+              deriving (Eq, Show)
 
-renderGrid :: Grid -> String
-renderGrid = concat . insertEvery 3 hline . map renderRow
+renderGrid :: Encoding -> Grid -> String
+renderGrid Ascii = renderGrid' topBtmA boxDivA hlineA renderRowA
+renderGrid Utf8  = renderGrid' topBtmU boxDivU hlineU renderRowU
 
-renderRow :: Row Digit -> String
-renderRow = (++"\n") . concat . insertEvery 3 "|" . map renderDigit
+-- | renderGrid' tb div hl rrow
+--   tb: the topBtm function (inserts the top & bottom of the outside frame)
+--   div: the boxDiv string (the horiz divider between bands)
+--   hl: the hline string (the horiz line between rows)
+--   rrow: the renderRow function
+renderGrid' :: ([String] -> [String]) -> String -> String
+                 -> (Row Digit -> String) -> Grid -> String
+renderGrid' tb div hl rrow =
+  concat . tb . intersperse div . map (intercalate hl)
+    . groupN gridOrder . map rrow
 
-renderDigit :: Digit -> String
-renderDigit d
+-- | topBtmA is the ascii version of the topBtm function, which inserts the top
+--   and bottom of the outside frame.  Grids rendered in ascii do not have a top
+--   and bottom frame.
+topBtmA :: [String] -> [String]
+topBtmA = id
+
+-- | topBtmU is the unicode version of the topBtm function (inserts the top &
+--   bottom of the outside frame).
+topBtmU :: [String] -> [String]
+topBtmU rs = topFrm : (rs ++ [btmFrm])
+  where topFrm = "╔═══╤═══╤═══╦═══╤═══╤═══╦═══╤═══╤═══╗\n"
+  
+        btmFrm = "╚═══╧═══╧═══╩═══╧═══╧═══╩═══╧═══╧═══╝\n"
+
+-- | renderRowA renders the given row, in ascii.
+renderRowA :: Row Digit -> String
+renderRowA = (++"\n") . concat . insertEvery gridOrder "|" . map renderDigitA
+
+-- | renderRowU renders the given row, in unicode (utf8).
+renderRowU :: Row Digit -> String
+renderRowU = (++"\n") . concat . intersperseFL "║" . map (intercalate "│")
+               . groupN gridOrder . map renderDigitU
+
+-- | instersperseFL x xs is similar to intersperse, but in addition to adding
+--   the element x between the elements of xs, it also adds x to the beginning
+--   and end of xs.  'FL' stands for 'first' and 'last'.
+intersperseFL :: a -> [a] -> [a]
+intersperseFL x xs = x : (intersperse x xs) ++ [x]
+
+-- | renderDigitA renders the given digit in ascii.
+renderDigitA :: Digit -> String
+renderDigitA d
     | blank d         = ". "
     | d `elem` digits = [d, ' ']
     | otherwise       = ""
 
-hline :: String
-hline = "------+------+------\n"
+-- | renderDigitU renders the given digit in unicode.
+renderDigitU :: Digit -> String
+renderDigitU d
+    | blank d         = "   "
+    | d `elem` digits = [' ', d, ' ']
+    | otherwise       = ""
 
--- insertEvery n sep, applied to a list xs, inserts the element
--- sep into xs after every n items.
+-- | hlineA renders the dividing line between rows, but grids rendered in ascii
+--   do not have this dividing line.
+hlineA :: String
+hlineA = ""
 
+-- | hlineU renders the dividing line between rows, for unicode-rendered grids.
+hlineU :: String
+hlineU = "╟───┼───┼───╫───┼───┼───╫───┼───┼───╢\n"
+
+-- | boxDivA renders the horizontal line dividing boxes, or bands, in ascii.
+boxDivA :: String
+boxDivA = "------+------+------\n"
+
+-- | boxDivU renders the horizontal line dividing boxes, or bands, in unicode.
+boxDivU :: String
+boxDivU = "╠═══╪═══╪═══╬═══╪═══╪═══╬═══╪═══╪═══╣\n"
+
+
+-- | insertEvery n sep, applied to a list xs, inserts the element
+--   sep into xs after every n items.
 insertEvery :: Int -> a -> [a] -> [a]
 insertEvery n sep  = intercalate [sep] . groupN n
 
 
--- renderCMatrix renders a choice matrix--i.e., a matrix of lists of digits.
+-- | renderCMatrix renders a choice matrix--i.e., a matrix of lists of digits.
 renderCMatrix :: Matrix [Digit] -> String
 renderCMatrix = undefined
 
