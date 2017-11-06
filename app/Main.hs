@@ -250,15 +250,22 @@ main = do
 
         (Make,os,["solution"]) -> putStrLn . renderGrid (enc os) =<< solutionIO
 
-        (Make,os,["puzzle"]) -> putStrLn . renderGrid (enc os) =<< puzzleIO
+        (Make,os,["puzzle"]) -> putStrLn . renderGrid (enc os) =<< puzzleIO (cw os)
 
--- | enc fs extracts the encoding from a list of flags.  If both utf8 and ascii
+-- | 'enc' fs extracts the encoding from a list of flags.  If both utf8 and ascii
 --   are specified, utf8 overrides ascii.  If no encoding flag is in the list of
 --   flags, default to ascii.
 enc :: [Flag] -> Encoding
 enc fs
   | Utf8Enc `isIn` fs  = Utf8
   | otherwise          = Ascii
+
+-- | 'cw' extracts the number of clues wanted from a list of flags.  If the Clues
+-- flag is not in the list, it yields Nothing.
+cw :: [Flag] -> Maybe Int
+cw []           = Nothing
+cw (Givens n:_) = Just n
+cw (_:fs)       = cw fs
 
 gridsList :: String -> Maybe [Grid]
 gridsList s = gridsFrom possibleParses
