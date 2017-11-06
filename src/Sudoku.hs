@@ -584,11 +584,13 @@ solutions rg = solveRnd rg' grid
   where (grid,rg') = startingGrid initialFixed rg
 
 -- We then return the head of the 'solutions' list as our generated solution
--- grid:
+-- grid, unless there are no solutions, in which case we try again by
+-- recursively calling 'solution'.
 
 solution :: (RandomGen g) => g -> (Grid, g)
-solution rg = (head gs, rg')
-  where (gs,rg') = solutions rg
+solution rg = case solutions rg of
+                ([],rg')  -> solution rg'
+                (g:_,rg') -> (g, rg')
 
 -- If one is using the IO monad's hidden StdGen variable, there is a wrapped
 -- version:
