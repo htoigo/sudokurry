@@ -789,11 +789,35 @@ combinationsDiff g = 0
 -- puzzle d rg = (head ps, rg')
 --     where (ps,rg') = puzzles d rg
 
-puzzle :: (RandomGen g) => g -> (Grid, g)
-puzzle rg = (foldl clearCellIfOK grid order, rg3)
-  where (grid,rg3)  = solution rg1
-        (order,_) = shuffle [0..gridSize^2-1] rg2
-        (rg1,rg2) = split rg
+-- | Map a (possible) number of clues wanted and a random generator to a pair
+-- containing a generated puzzle with the given number of clues, and a new
+-- random generator.
+puzzle :: (RandomGen g) => Maybe Int -> g -> (Grid, g)
+puzzle cw rg =
+  case clearCells cw grid order of
+    Just gr -> (gr, rg4)
+    Nothing -> puzzle cw rg3    -- failed to get number of clues wanted; try again
+    where (grid,rg3)  = solution rg1
+          (order,rg4) = shuffle [0..gridSize^2-1] rg2
+          (rg1,rg2)   = split rg
+
+-- | 'clearCells' takes a Maybe Int representing the number of puzzle clues
+-- wanted and a grid (which is initially a complete solution) and a list of
+-- positions in the grid (a list of Ints) representing the order in which to
+-- clear cells.  It clears cells in the order given until the number of cells
+-- left filled matches the number of clues wanted.  If it runs through all
+-- the cells in the grid without reducing the number of clues to the desired
+-- number, it returns Nothing.
+clearCells :: Maybe Int -> Grid -> [Int] -> Maybe Grid
+clearCells Nothing g ps = Just (foldl clearCellIfOK g ps)
+clearCells _ _ []       = Nothing
+clearCells (Just cw) g (p:ps)
+  | numFilled g <= cw = Just g
+  | otherwise         = clearCells (Just cw) (clearCellIfOK g p) ps
+
+-- | Determine the number of non-blank cells in a grid.
+numFilled :: Grid -> Int
+numFilled = length . (filter (not . blank)) . ungroup
 
 -- | Take a grid and an integer representing a position within the grid, where
 -- positions are numbered left-to-right, top-to-bottom from 0 to 80, and if
@@ -815,12 +839,13 @@ clearCellN n ds = ds1 ++ blankC : tail ds2
     where (ds1,ds2) = splitAt n ds
 
 -- | Generate a puzzle within the IO monad.  A convenience function for those
--- using the IO monad's hidden StdGen variable.
+-- using the IO monad's hidden StdGen variable.  Optionally take the number of
+-- clues wanted.
 
 -- Was:  puzzleIO :: DiffLevel -> IO Grid
 
-puzzleIO :: IO Grid
-puzzleIO = getStdRandom (puzzle)
+puzzleIO :: Maybe Int -> IO Grid
+puzzleIO cw = getStdRandom (puzzle cw)
 
 
 -- 'puzzles' is a list of puzzle grids in which the first grid is a valid
