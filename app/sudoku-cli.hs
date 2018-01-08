@@ -19,7 +19,7 @@ import Sudoku.PrettyPrint ( renderGrid, Encoding(..) )
 import Data.Version ( showVersion )
 import Paths_sudoku ( version )
 
--- A sudoku program,  demonstrating use of the Sudoku module.
+-- A sudoku command line program,  demonstrating use of the Sudoku module.
 
 -- Usage:
 --   sudoku -h | --help
@@ -27,9 +27,9 @@ import Paths_sudoku ( version )
 --   sudoku [-u | -a] solve [-f FILE | GRIDSTR...] [-t | --time]
 --   sudoku [-u | -a] grade [-f FILE | GRIDSTR...]
 --   sudoku [-u | -a] make solution
---                       | puzzle [-d DIFF | --difficulty DIFF]
---                                [-g NUMGIVENS | --givens NUMGIVENS]
---                                [-t | --time]
+--                    | puzzle [-d DIFF | --difficulty DIFF]
+--                             [-g NUMGIVENS | --givens NUMGIVENS]
+--                             [-t | --time]
 
 usageHdr :: String -> String
 usageHdr prg = "Usage:\n"
@@ -38,9 +38,9 @@ usageHdr prg = "Usage:\n"
                ++ "  " ++ prg ++ " [-u | -a] solve [-f FILE | GRIDSTR...] [-t | --time]\n"
                ++ "  " ++ prg ++ " [-u | -a] grade [-f FILE | GRIDSTR...]\n"
                ++ "  " ++ prg ++ " [-u | -a] make solution\n"
-               ++ "  " ++ spc ++ "              | puzzle [-d DIFF | --difficulty DIFF]\n"
-               ++ "  " ++ spc ++ "                       [-g NUMGIVENS | --givens NUMGIVENS]\n"
-               ++ "  " ++ spc ++ "                       [-t | --time]"
+               ++ "  " ++ spc ++ "           | puzzle [-d DIFF | --difficulty DIFF]\n"
+               ++ "  " ++ spc ++ "                    [-g NUMGIVENS | --givens NUMGIVENS]\n"
+               ++ "  " ++ spc ++ "                    [-t | --time]"
   where spc = map (const ' ') prg
 
 data Flag = Help                 --  -h, --help
