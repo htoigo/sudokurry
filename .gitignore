@@ -1,17 +1,17 @@
 # -*- mode: gitignore; -*-
 
+# Emacs temporary files
+*~
+
 # We have third-party C language code in ast-sudoku and sugen, which if built
 # might produce .o or .a files.
-
 *.[oa]
 
 # Specifically ignore the binaries of those two projects:
-
 vendor/ast-sudoku/ast-sudoku
 vendor/dlbeer/sugen
 
 # Haskell stuff
-
 dist
 dist-*
 cabal-dev
