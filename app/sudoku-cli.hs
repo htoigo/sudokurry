@@ -28,7 +28,7 @@ import Paths_sudoku ( version )
 --   sudoku [-u | -a] grade [-f FILE | GRIDSTR...]
 --   sudoku [-u | -a] make solution
 --                       | puzzle [-d DIFF | --difficulty DIFF]
---                                [-g NUMGIVENS | --givens NUMGIVENS]
+--                                [-c N | --clues N]
 --                                [-t | --time]
 
 usageHdr :: String -> String
@@ -39,7 +39,7 @@ usageHdr prg = "Usage:\n"
                ++ "  " ++ prg ++ " [-u | -a] grade [-f FILE | GRIDSTR...]\n"
                ++ "  " ++ prg ++ " [-u | -a] make solution\n"
                ++ "  " ++ spc ++ "              | puzzle [-d DIFF | --difficulty DIFF]\n"
-               ++ "  " ++ spc ++ "                       [-g NUMGIVENS | --givens NUMGIVENS]\n"
+               ++ "  " ++ spc ++ "                       [-c N | --clues N]\n"
                ++ "  " ++ spc ++ "                       [-t | --time]"
   where spc = map (const ' ') prg
 
@@ -50,7 +50,7 @@ data Flag = Help                 --  -h, --help
           | Utf8Enc              --  -u, --utf8
           | File String          --  -f FILE, --file=FILE
           | Difficulty Int       --  -d DIFF, --difficulty=DIFF
-          | Givens Int           --  -g NUMGIVENS, --givens=NUMGIVENS
+          | Clues Int            --  -c N, --clues=N
           deriving (Eq, Ord, Show)
 
 data Command = Solve | Make | Grade
@@ -72,8 +72,8 @@ options =
       "Read grids from FILE instead of cmdline or stdin."
   , Option ['d'] ["difficulty"] (ReqArg (Difficulty . read) "DIFF")
       "The difficulty level of the puzzle to be made."
-  , Option ['g'] ["givens"]     (ReqArg (Givens . read) "NUMGIVENS")
-      "The number of givens you want the puzzle to have."
+  , Option ['c'] ["clues"]     (ReqArg (Clues . read) "N")
+      "The number of clues you want the puzzle to have."
   ]
 
 versionInfo :: String -> String
@@ -164,7 +164,7 @@ parseGrade prg opts pas
 -- parseMake parses the args for the Make command, either
 --   'make solution'
 -- or
---   'make puzzle [-d DIFF ] [-g NUMGIVENS] [-t|--time]'.
+--   'make puzzle [-d DIFF ] [-c N] [-t|--time]'.
 parseMake :: String -> [Flag] -> [String] -> IO [String]
 parseMake prg _ [] =
     dieWith argErr ("Make command requires 'puzzle' or 'solution'.\n"
@@ -182,9 +182,9 @@ parseMake prg opts (pa:pas)
         dieWith argErr
                 ("Cannot specify --difficulty option when making a solution.\n"
                  ++ usageInfo (usageHdr prg) options)
-    | pa `isPrefixOf` "solution" && (Givens 0) `isIn` opts =
+    | pa `isPrefixOf` "solution" && (Clues 0) `isIn` opts =
         dieWith argErr
-                ("Cannot specify --givens option when making a solution.\n"
+                ("Cannot specify --clues option when making a solution.\n"
                  ++ usageInfo (usageHdr prg) options)
     | pa `isPrefixOf` "solution" = return ["solution"]
     | pa `isPrefixOf` "puzzle" = return ["puzzle"]
@@ -197,15 +197,15 @@ parseMake prg opts (pa:pas)
 -- which is true for any two File String flags, that is, File s ~= File t,
 -- regardless of what s and t are.
 
--- The same applies to the flags Difficulty n and Givens m.
+-- The same applies to the flags Difficulty n and Clues m.
 
 -- (~=) on files does not care about what the actual filename is, for the flags
--- Difficulty and Givens it does not care about the difficulty rating or number
--- of givens.  But for other flags it is the same as (==).
+-- Difficulty and Clues it does not care about the difficulty rating or number
+-- of clues.  But for other flags it is the same as (==).
 (~=) :: Flag -> Flag -> Bool
 (File _)       ~= (File _)       = True
 (Difficulty _) ~= (Difficulty _) = True
-(Givens _)     ~= (Givens _)     = True
+(Clues _)     ~= (Clues _)     = True
 a              ~= b              = a == b
 
 -- (/~=) is the negation of (~=).
@@ -264,7 +264,7 @@ enc fs
 -- flag is not in the list, it yields Nothing.
 cw :: [Flag] -> Maybe Int
 cw []           = Nothing
-cw (Givens n:_) = Just n
+cw (Clues n:_)  = Just n
 cw (_:fs)       = cw fs
 
 gridsList :: String -> Maybe [Grid]

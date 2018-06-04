@@ -600,7 +600,7 @@ solutionIO = getStdRandom solution
 
 {-- Statistical analysis --}
 
--- Compute for different values of n the probability that a grid with n givens
+-- Compute for different values of n the probability that a grid with n clues
 -- is solvable and how long it takes.
 
 -- Fix n, then perform 10000 trials.  Each trial consists of running the solver
@@ -640,8 +640,8 @@ diffLevels :: [DiffLevel]
 diffLevels = [1..5]
 
 -- We employ four metrics of difficulty in estimating the difficulty of puzzles:
---   1. Total number of givens.
---   2. Minimum number of givens per row, column, or box.
+--   1. Total number of clues.
+--   2. Minimum number of clues per row, column, or box.
 --   3. Logic techniques that can aid a person in solving.
 --   4. Brute force search/solve times by computer (or better, use the number of
 --      choices (potential combinations) in solving. i.e., a measure of how many
@@ -650,31 +650,33 @@ diffLevels = [1..5]
 -- For each metric, a puzzle is given a difficulty level from 1 to 5.
 
 -- For metric 1, each difficulty level is associated with a range of values for
--- the total number of givens in the puzzle, according to the following
+-- the total number of clues in the puzzle, according to the following
 -- association list:
 
-totGivensDiffLvls :: [(DiffLevel, [Int])]
-totGivensDiffLvls = [ (1, [50..81])
-                    , (2, [36..49])
-                    , (3, [32..35])
-                    , (4, [28..31])
-                    , (5, [22..27]) ]
+totCluesDiffLvls :: [(DiffLevel, [Int])]
+totCluesDiffLvls = [ (1, [50..81])
+                   , (2, [36..49])
+                   , (3, [32..35])
+                   , (4, [28..31])
+                   , (5, [22..27])
+                   ]
 
 -- For metric 2, each difficulty level is associated with a lower bound on the
--- number of givens per row, column, or box, according to the following list:
+-- number of clues per row, column, or box, according to the following list:
 
-minGivensDiffLvls :: [(DiffLevel, Int)]
-minGivensDiffLvls = [ (1, 5)
+minCluesDiffLvls :: [(DiffLevel, Int)]
+minCluesDiffLvls =  [ (1, 5)
                     , (2, 4)
                     , (3, 3)
                     , (4, 2)
-                    , (5, 0) ]
+                    , (5, 0)
+                    ]
 
 -- The overall puzzle difficulty is a weighted average of the four metrics:
 
 -- Metric                     Weight    Example
--- Total givens                 0.4        4
--- Min givens / set             0.2        3
+-- Total clues                  0.4        4
+-- Min clues / set              0.2        3
 -- Req'd logic technique(s)     0.2        2
 -- Brute force trials needed    0.2        3
 -----------------------------------------------
@@ -682,9 +684,9 @@ minGivensDiffLvls = [ (1, 5)
 
 type Difficulty = Float
 
-totGivensWt, minGivensWt, techniquesWt, combinationsWt :: Float
-totGivensWt      = 0.4
-minGivensWt      = 0.2
+totCluesWt, minCluesWt, techniquesWt, combinationsWt :: Float
+totCluesWt       = 0.4
+minCluesWt       = 0.2
 techniquesWt     = 0.2
 combinationsWt   = 0.2
 
@@ -692,18 +694,18 @@ combinationsWt   = 0.2
 -- above.
 
 difficulty :: Grid -> Difficulty
-difficulty g = fromIntegral (totGivensDiff g) * totGivensWt
-               + fromIntegral (minGivensDiff g) * minGivensWt
+difficulty g = fromIntegral (totCluesDiff g) * totCluesWt
+               + fromIntegral (minCluesDiff g) * minCluesWt
                + fromIntegral (techniquesDiff g) * techniquesWt
                + fromIntegral (combinationsDiff g) * combinationsWt
 
--- Metric 1: Total number of givens in the puzzle.
+-- Metric 1: Total number of clues in the puzzle.
 
--- totGivensDiff takes a puzzle grid g and returns its difficulty level based on
--- the total number of givens difficulty levels, defined above.
+-- totCluesDiff takes a puzzle grid g and returns its difficulty level based on
+-- the total number of clues difficulty levels, defined above.
 
-totGivensDiff :: Grid -> DiffLevel
-totGivensDiff g = fromJust $ lookupR (numGivens g) (map swap totGivensDiffLvls)
+totCluesDiff :: Grid -> DiffLevel
+totCluesDiff g = fromJust $ lookupR (numClues g) (map swap totCluesDiffLvls)
 
 -- lookupR is a variation of the Prelude function lookup, in which the keys
 -- in the association list are ranges instead of single values.
@@ -716,29 +718,29 @@ lookupR key ((ks,v):ksvs)
     | key `elem` ks  = Just v
     | otherwise = lookupR key ksvs
 
--- numGivens takes a puzzle grid and returns the total number of givens in the
+-- numClues takes a puzzle grid and returns the total number of clues in the
 -- puzzle.
-numGivens :: Grid -> Int
-numGivens = length . filter (not . blank) . ungroup
+numClues :: Grid -> Int
+numClues = length . filter (not . blank) . ungroup
 
--- Metric 2: The minimum number of givens per row, column, or box.
+-- Metric 2: The minimum number of clues per row, column, or box.
 
--- minGivensDiff takes a puzzle grid g and returns its difficulty level based on
--- the minimun number of givens per row, column, or box, according to levels
+-- minCluesDiff takes a puzzle grid g and returns its difficulty level based on
+-- the minimun number of clues per row, column, or box, according to levels
 -- defined above.  This will throw an error if lookupLB returns Nothing.
 -- lookupLB should never do that, since the last pair in the alist
--- minGivenDiffLvls has 0 for its lower bound.
+-- minCluesDiffLvls has 0 for its lower bound.
 
-minGivensDiff :: Grid -> DiffLevel
-minGivensDiff g = fromJust (lookupLB mg minGivensDiffLvls)
-                  where mg = minGivensRCB g
+minCluesDiff :: Grid -> DiffLevel
+minCluesDiff g = fromJust (lookupLB mg minCluesDiffLvls)
+                  where mg = minCluesRCB g
 
 -- lookupLB x al takes a value x and the association list that pairs a
--- difficulty level with the minimum number of givens per row, column or box.
--- (See minGivensDiffLvls alist, above.)  It assumes that the lower bounds on
--- givens are monotonically decreasing as one goes through the list from
+-- difficulty level with the minimum number of clues per row, column or box.
+-- (See minCluesDiffLvls alist, above.)  It assumes that the lower bounds on
+-- clues are monotonically decreasing as one goes through the list from
 -- beginning to end.  It finds the first lower bound that is less than or equal
--- to the minimum givens in the puzzle, and returns the difficulty level of that
+-- to the minimum clues in the puzzle, and returns the difficulty level of that
 -- lower bound.
 
 lookupLB :: (Ord b) => b -> [(a,b)] -> Maybe a
@@ -747,19 +749,19 @@ lookupLB x ((k,v):kvs)
     | x >= v  = Just k
     | otherwise = lookupLB x kvs
 
--- minGivensRCB determines the minimum number of givens per row, column or box
+-- minCluesRCB determines the minimum number of clues per row, column or box
 -- in a given puzzle grid.
 
-minGivensRCB :: Grid -> Int
-minGivensRCB g = minimum $
-                 map ($ g) [minGivensIn rows, minGivensIn cols, minGivensIn boxs]
-                 where minGivensIn f = minGivensRow . f
+minCluesRCB :: Grid -> Int
+minCluesRCB g = minimum $
+                 map ($ g) [minCluesIn rows, minCluesIn cols, minCluesIn boxs]
+                 where minCluesIn f = minCluesRow . f
 
--- minGivensRow takes a puzzle grid and returns the smallest number of givens
+-- minCluesRow takes a puzzle grid and returns the smallest number of clues
 -- per row.
-minGivensRow :: Grid -> Int
-minGivensRow = minimum . map givensInRow
-               where givensInRow = length . filter (not . blank)
+minCluesRow :: Grid -> Int
+minCluesRow = minimum . map cluesInRow
+               where cluesInRow = length . filter (not . blank)
 
 -- Metric 3: Logic techniques that can aid in solving.
 
@@ -779,7 +781,7 @@ combinationsDiff g = 0
 
 -- Generate a new puzzle, by first generating a completed solution grid, then
 -- emptying cells while verifying that the puzzle has only the one solution
--- until the number of givens or the target difficulty is reached.
+-- until the number of clues or the target difficulty is reached.
 
 -- Exploring the combinatoric space of puzzles that have that grid as their solution.
 
@@ -859,14 +861,14 @@ puzzleIO cw = getStdRandom (puzzle cw)
 -- to produce an INFINITE (not) list of grids, where each grid is obtained from the
 -- previous one by blanking out one cell at random.  This list is then filtered
 -- for grids that are uniquely solvable (by has1Soln), that have a total number
--- of givens in the range corresponding to the desired difficulty level, whose
--- minimum number of givens per row, column or box is above the lower bound for
+-- of clues in the range corresponding to the desired difficulty level, whose
+-- minimum number of clues per row, column or box is above the lower bound for
 -- the desired difficulty, and whose overall difficulty matches the desired
 -- difficulty.
 
 puzzles :: (RandomGen g) => DiffLevel -> g -> ([Grid], g)
-puzzles d rg = (filter (has1Soln .&&. (totGivensInRange d)
-                      .&&. (minGivensAboveLB d) .&&. (hasDifficulty d))
+puzzles d rg = (filter (has1Soln .&&. (totCluesInRange d)
+                      .&&. (minCluesAboveLB d) .&&. (hasDifficulty d))
               $ iterate (hide1 rg') grid,       rg')
               where (grid,rg') = solution rg
 
@@ -900,30 +902,30 @@ singleton :: [a] -> Bool
 singleton [x] = True
 singleton _   = False
 
--- The predicates totGivensInRange, minGivensAboveLB and hasDificulty take an
+-- The predicates totCluesInRange, minCluesAboveLB and hasDificulty take an
 -- integral target difficulty level and a puzzle grid and return True iff the
 -- given puzzle satisfies the corresponding difficulty constraint for the given
 -- desired difficulty level.
 
--- totGivensInRange determines whether the given grid's total number of givens
+-- totCluesInRange determines whether the given grid's total number of clues
 -- is in the range corresponding to the given difficulty level.  This function
 -- will throw an error if lookup returns Nothing.
 
-totGivensInRange :: DiffLevel -> Grid -> Bool
-totGivensInRange d g = numGivens g `elem` range
-                       where range = fromJust (lookup d totGivensDiffLvls)
+totCluesInRange :: DiffLevel -> Grid -> Bool
+totCluesInRange d g = numClues g `elem` range
+                       where range = fromJust (lookup d totCluesDiffLvls)
 
--- The predicate minGivensAboveLB determines whether the given grid's minimum
--- number of givens per row, column or box is above lb, the lower bound for the
+-- The predicate minCluesAboveLB determines whether the given grid's minimum
+-- number of clues per row, column or box is above lb, the lower bound for the
 -- given difficulty level.  This function will throw an error if lookup returns
 -- Nothing.
 
-minGivensAboveLB :: DiffLevel -> Grid -> Bool
-minGivensAboveLB d g = minGivensRCB g >= lb
-                       where lb = fromJust (lookup d minGivensDiffLvls)
+minCluesAboveLB :: DiffLevel -> Grid -> Bool
+minCluesAboveLB d g = minCluesRCB g >= lb
+                       where lb = fromJust (lookup d minCluesDiffLvls)
 
--- minGivensAboveLB d g =
---     (minGivensRCB g) >= (fromJust $ lookup d minGivensDiffLvls)
+-- minCluesAboveLB d g =
+--     (minCluesRCB g) >= (fromJust $ lookup d minCluesDiffLvls)
 
 
 -- hasDifficulty takes a target difficulty level td and a puzzle grid and
